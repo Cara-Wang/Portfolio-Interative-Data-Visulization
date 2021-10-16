@@ -1,0 +1,70 @@
+/* AXES */
+/* ticks */
+.axis line{
+stroke: #706f6f;
+stroke-width: 0.3;
+shape-rendering: crispEdges;
+}
+
+/* axis contour */
+.axis path {
+stroke: #706f6f;
+stroke-width: 0.7;
+shape-rendering: crispEdges;
+}
+
+/* axis text */
+.axis text {
+fill: #2b2929;
+font-family: Georgia;
+font-size: 120%;
+}
+
+/* LINE CHART */
+.line {
+fill: none;
+/* stroke: #d2d2d2; */
+stroke: #999999;
+stroke-width: .4;
+}
+
+.line_AVERAGE{
+  fill: none;
+  stroke: #ed3700;
+  stroke-width: 1.9;
+}
+
+.ghost-line {
+fill: none;
+stroke: #d2d2d2;
+opacity: 0;
+stroke-width: 10;
+}
+
+.serie_label {
+/* fill: #d2d2d2; */
+stroke: #d2d2d2;
+stroke-width: 1;
+/* fill:#ffffff; */
+opacity: 0;
+font-family: Georgia;
+font-size: 60%;
+}
+
+/* .graph-background {
+    background-color: #e7f1fa; ["#1b4965","#126782","#219ebc","#8ecae6","#62b6cb","#35596c","#83c5be","#2ec4b6","#0a9396","#006d77"]
+} */
+.grid-lines{
+stroke: #d2d2d2;
+shape-rendering: crispEdges;
+stroke-opacity: .3;
+}
+
+.overlay{
+fill: none;
+pointer-events: all;
+}
+
+.focus{
+  opacity: 0.7;
+}

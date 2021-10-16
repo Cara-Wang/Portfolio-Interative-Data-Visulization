@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>Multi Line Chart</title>
+<!-- <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script> -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" type="text/css" href="styles.css">
+<style></style>
+</head>
+<body>
+<div id="container" class="svg-container"></div>
+<script>
+//------------------------1. PREPARATION------------------------//
+//https://datawanderings.com/2019/11/01/tutorial-making-an-interactive-line-chart-in-d3-js-v-5/
+//-----------------------------SVG------------------------------//
+const width = 960;
+const height = 500;
+const margin = 10;
+const padding = 50;
+const adj = 30;
+// we are appending SVG first
+const svg = d3.select("div#container").append("svg")
+    .attr("preserveAspectRatio", "xMinYMin meet")
+    .attr("viewBox", "-"
+          + adj + " -"
+          + adj + " "
+          + (width + adj *3) + " "
+          + (height + adj*3))
+    .style("padding", padding)
+    .style("margin", margin)
+    .classed("svg-content", true)
+    .attr("class", "graph-background");
+
+//-----------------------------DATA-----------------------------//
+const timeConv = d3.timeParse("%Y");
+//const dataset = d3.csv("interline_data.csv");
+const dataset = d3.csv("https://raw.githubusercontent.com/EllenBeingDumb/401final/main/interline_data.csv");
+dataset.then(function(data) {
+    var slices = data.columns.slice(1).map(function(id) {
+        return {
+            id: id,
+            values: data.map(function(d){
+                return {
+                    date: timeConv(d.date),
+                    measurement: +d[id]
+                };
+            })
+        };
+    });
+
+//----------------------------SCALES----------------------------//
+const xScale = d3.scaleTime().range([0,width]);
+const yScale = d3.scaleLinear().range([height, 0]);
+xScale.domain(d3.extent(data, function(d){
+    return timeConv(d.date)}));
+
+yScale.domain([(-20), d3.max(slices, function(c) {
+    return d3.max(c.values, function(d) {
+        return d.measurement + 4; });
+        })
+    ]);
+
+//-----------------------------AXES-----------------------------//
+const yaxis = d3.axisLeft()
+    .ticks((slices[0].values).length)
+    .scale(yScale);
+
+const xaxis = d3.axisBottom()
+    //.ticks(d3.timeDay.every(10))
+    .tickFormat(d3.timeFormat('%Y'))
+    .scale(xScale);
+
+//----------------------------LINES-----------------------------//
+const line = d3.line()
+//.interpolate("basis")
+    .x(function(d) { return xScale(d.date); })
+    .y(function(d) { return yScale(d.measurement); })
+    .curve(d3.curveCardinal);
+
+const dataArray = [{x:2011,y:1.01746988},
+{x:2012,y:16.31023256},
+{x:2013,y:33.01306818},
+{x:2014,y:12.68355556},
+{x:2015,y:0.278494624},
+{x:2016,y:10.88195876},
+{x:2017,y:22.3552},
+{x:2018,y:-4.9339},
+{x:2019,y:31.9323},
+{x:2020,y:20.9682},
+{x:2021,y:18.0808}];
+
+//1.01746988	16.31023256	33.01306818	12.68355556	0.278494624	10.88195876	22.3552	-4.9339	31.9323	20.9682	18.0808
+
+const myline = d3.line()
+.x(function(d,i) { return timeConv(d.x); })
+.y(function(d,i) { return d.y; })
+.curve(d3.curveCardinal);
+
+//-------------------------2. DRAWING---------------------------//
+//-----------------------------AXES-----------------------------//
+
+svg.append("g")
+    .attr("class", "axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xaxis)
+    .append("text")
+    .attr("text-anchor", "end")
+    .attr("x", width+10)
+    .attr("y", -6)
+    .text("Year");
+
+
+svg.append("g")
+    .attr("class", "axis")
+    .call(yaxis)
+    .append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("dy", ".75em")
+    .attr("y", 6)
+    .style("text-anchor", "end")
+    .text("Annual Return% of Investment");
+
+svg.append('path')
+  .attr("d",myline(dataArray))
+  .attr('stroke','red')
+  .attr('stroke-width','10');
+
+//----------------------------LINES-----------------------------//
+const lines = svg.selectAll("lines")
+    .data(slices)
+    .enter()
+    .append("g");
+
+    lines.append("path")
+    .attr("class", function(d) {return d.id == "AVERAGE"? "line_"+d.id:"line";})
+    // .attr("class", function(d) {return "line."+d.id;})
+    //.attr("class","line")
+    .attr("d", function(d) { return line(d.values); });
+
+    lines.append("text")
+    .attr("class","serie_label")
+    .datum(function(d) {
+        return {
+            id: d.id,
+            value: d.values[d.values.length - 1]}; })
+    .attr("transform", function(d) {
+            return "translate(" + (xScale(d.value.date) + 10)
+            + "," + (yScale(d.value.measurement) + 5 )+ ")"; })
+    .attr("x", 5)
+  //  .text(function(d) { return ("Portfolio ") + d.id; });
+    .text(function(d) { return d.id; });
+
+const ghost_lines = lines.append("path")
+    .attr("class", "ghost-line")
+    .attr("d", function(d) { return line(d.values); });
+
+//----------------------------GRIDS-----------------------------//
+//https://bl.ocks.org/jeantimex/68e456aa4a536b245997b28330adace2
+// Create the grid line functions.
+    const xGrid = (g) => g
+      .attr('class', 'grid-lines')
+      .selectAll('line')
+      .data(xScale.ticks())
+      .join('line')
+      .attr('x1', d => xScale(d))
+      .attr('x2', d => xScale(d))
+      .attr('y1', margin)
+      .attr('y2', height - margin);
+
+    const yGrid = (g) => g
+      .attr('class', 'grid-lines')
+      .selectAll('line')
+      .data(yScale.ticks())
+      .join('line')
+      .attr('x1', margin)
+      .attr('x2', width - margin)
+      .attr('y1', d => yScale(d))
+      .attr('y2', d => yScale(d));
+//Draw
+      svg.append('g').call(xGrid);
+      svg.append('g').call(yGrid);
+
+
+
+//---------------------------EVENT1-----------------------------//
+svg.selectAll(".ghost-line")
+    .on('mouseover', function() {
+        const selection = d3.select(this).raise();
+
+        selection
+            .transition()
+            .delay("100").duration("10")
+            //.style("stroke","#ed3700")
+            .style("stroke","#219ebc")
+            .style("opacity","1")
+            .style("stroke-width","3");
+
+        // add the legend action
+        const legend = d3.select(this.parentNode)
+            .select(".serie_label");
+
+        legend
+            .transition()
+            .delay("100")
+            .duration("10")
+            .style("stroke","#2b2929")
+            .style("stroke-width","1")
+            .style("opacity","1");
+            //.style("fill","#909000");
+        })
+
+    .on('mouseout', function() {
+        const selection = d3.select(this)
+
+        selection
+            .transition()
+            .delay("100")
+            .duration("10")
+            //.style("stroke","#ffffff")
+            //.style("stroke","#d2d2d2")
+            .style("opacity","0")
+            .style("stroke-width","8");
+
+        // add the legend action
+        const legend = d3.select(this.parentNode)
+            .select(".serie_label");
+
+        legend
+            .transition()
+            .delay("100")
+            .duration("10")
+            .style("stroke","#d2d2d2")
+            .style("opacity","0");
+//---------------------------EVENT2-----------------------------//
+
+// const focus = svg.append('g')
+//       .attr('class', 'focus')
+//       .style('display', 'none');
+//
+//     focus.append('circle')
+//       .attr('r', 4.5);
+//
+//     focus.append('line')
+//       .classed('x', true);
+//
+//     focus.append('line')
+//       .classed('y', true);
+//
+//     focus.append('text')
+//       .attr('x', 9)
+//       .attr('dy', '.35em');
+//
+//     svg.append('rect')
+//       .attr('class', 'overlay')
+//       .attr('width', width)
+//       .attr('height', height)
+//       .on('mouseover', () => focus.style('display', null))
+//       .on('mouseout', () => focus.style('display', 'none'))
+//       .on('mousemove', mousemove);
+//
+//     function mousemove() {
+//         const x0 = xScale.invert(d3.select(this)[0]);
+//         const i = bisectDate(slices, x0, 1);
+//         const d0 = slices[i - 1];
+//         const d1 = slices[i];
+//         const d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+//         focus.attr("transform", function(d) {
+//         return "translate(" + (xScale(d.value.date) + 10)
+//         + "," + (yScale(d.value.measurement) + 5 )+ ")"; })
+//         focus.select('line.x')
+//           .attr('x1', 0)
+//           .attr('x2', -x(d.date))
+//           .attr('y1', 0)
+//           .attr('y2', 0);
+//
+//         focus.select('line.y')
+//           .attr('x1', 0)
+//           .attr('x2', 0)
+//           .attr('y1', 0)
+//           .attr('y2', height - y(d.measurement));
+//
+//         focus.select('text').text(d.measurement);
+//       }
+//
+svg.append("text")
+        .attr("x", (width / 2))
+        .attr("y", 0 - (margin.top / 2))
+        .attr("text-anchor", "middle")
+        .style("font-size", "25px")
+        .style("font-family", "Georgia")
+        .text("Time-Series Annual Returns of Top Portfolios");
+
+svg.append("text")
+        .attr("x", (width / 2)+100)
+        .attr("y", margin / 2+200)
+        .attr("stroke", "red")
+        .attr("fill", "red")
+        .attr("stroke-width", ".1")
+        .attr("text-anchor", "middle")
+        .style("font-size", "15px")
+        .style("font-family", "Georgia")
+        .text("Mediocre Portfolio");
+
+
+    });
+});
+</script>
+</body>
